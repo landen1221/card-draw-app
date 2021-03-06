@@ -1,7 +1,9 @@
-const Card = () => {
-    return (
-        <div>
+import './Card.css'
 
+const Card = ({suit, image}) => {
+    return (
+        <div className="Card">
+            <img src={image} alt=""/>
         </div>
     )
 }
