@@ -1,66 +1,64 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Card from './Card'
+import Card from "./Card";
 
 const DrawCard = () => {
   const apiLink = "https://deckofcardsapi.com/api/deck";
 
   const [deck, setDeck] = useState(null);
   const [cards, setCards] = useState([]);
-  const [tempState, setTempState ] = useState(0)
-  const [ auto, setAuto ] = useState(false)
-  const [initialRender, setInitialRender] = useState(true)
+  const [auto, setAuto] = useState(false);
+  const [rotate, setRotate] = useState(0)
 
   useEffect(() => {
-    axios.get(apiLink + "/new/shuffle/?deck_count=1").then((res) => {
+    async function shuffle() {
+      const res = await axios.get(apiLink + "/new/shuffle/?deck_count=1");
       setDeck(res.data);
-    });
-  }, [setDeck]);
+    }
+    shuffle();
+  }, []);
 
-  
-  useEffect (() => {
-    if (initialRender) {
-        setInitialRender(false)
+  useEffect(() => {
+    if (auto === true) {
+      const myInterval = setInterval(() => {
+        drawCard(deck);
+      }, 1000);
+      return () => clearInterval(myInterval);
     } else {
-        if (auto === true) {
-            setInterval(() => {
-                drawCard()
-            }, 1000)
-            return clearInterval
-        } else {
-            drawCard()
-        }
+      drawCard(deck);
     }
-  }, [auto, tempState]) 
-   
-  function drawCard() {
-    async function getCard() {
-        let deck_id;
+  }, [auto, deck]);
 
-        if (deck) {
-            deck_id = deck.deck_id;
-            let drawRes = await axios.get(`${apiLink}/${deck_id}/draw/?count=1`);
-            console.log(drawRes.data.remaining)
-
-            if (drawRes.data.remaining === 0) {
-                alert("Congratulations. You've picked up 52 cards! Let's play again")
-                window.location.reload()
-            }
-
-         setCards([...drawRes.data.cards]);
-        } 
+  async function drawCard(deck) {
+    if (!deck) {
+      return;
     }
-    getCard();
+
+    let deck_id;
+
+    deck_id = deck.deck_id;
+    let drawRes = await axios.get(`${apiLink}/${deck_id}/draw/?count=1`);
+
+    if (drawRes.data.remaining === 0) {
+      alert("Congratulations. You've picked up 52 cards! Let's play again");
+      window.location.reload();
+    }
+    const tempArray = [...drawRes.data.cards ]
+    tempArray[0]['rotated'] = rotate
+
+    setCards([...cards, ...tempArray]);
+    console.log(cards)
+    setRotate(rotate+15)
   }
-
-  console.log(auto)
 
   return (
     <div>
-      <button onClick={() => setTempState(tempState +1)}>Give me a card</button>
-      <button onClick={() => auto ? setAuto(false) : setAuto(true)} >Draw for me</button>
-      {cards.map(({code, image}) => (
-          <Card suit={code} key={code} image={image}/>
+      <button onClick={() => drawCard(deck)}>Give me a card</button>
+      <button onClick={() => (auto ? setAuto(false) : setAuto(true))}>
+        Draw for me
+      </button>
+      {cards.map(({ code, image, rotated }) => (
+        <Card suit={code} key={code} image={image} rotate={rotated}/>
       ))}
     </div>
   );
